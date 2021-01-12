@@ -47,6 +47,7 @@ class CustomDataset(Dataset):
         self.train = train
         self.all_image_files = all_image_files
         self.mod=mod
+        self.class_probs=None
 
     def __len__(self):
         return self.len
@@ -66,11 +67,15 @@ class CustomDataset(Dataset):
             img = self.transform(img)
         y_original = float(filename.name.islower()) # 1 is dog and 0 is cat
         if self.train:
-            num_extras=hash(filename.name) % self.mod
+            #num_extras=hash(filename.name) % self.mod
             num_extras = self.mod - 1
+            if self.class_probs is None:
+                lbl_dist=self.get_label_distribution()
+                p=np.array([lbl_dist[0],lbl_dist[1]])
+                self.class_probs=p/p.sum()
             with MaintainRandomState():
                 np.random.seed(42)
-                extras = np.random.choice([0., 1.], num_extras )
+                extras = np.random.choice([0., 1.], num_extras,p=self.class_probs)
             n = len(extras)+1
             z = np.concatenate([np.array([y_original]), extras])
             y = z.mean()
